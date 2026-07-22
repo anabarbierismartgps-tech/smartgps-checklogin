@@ -115,8 +115,8 @@
       display: inline-flex; align-items: center; gap: 9px;
       font-size: 13px; color: var(--muted);
     }
-    .server b {
-      font-size: 16px; color: var(--text); font-weight: 700; letter-spacing: .3px;
+    .server .srv-label {
+      font-size: 15px; color: var(--text); font-weight: 600; letter-spacing: .2px;
     }
     .server .code {
       display: inline-flex; align-items: center; justify-content: center;
@@ -222,14 +222,6 @@
     // ---- Config ----------------------------------------------------------
     const API_BASE = "https://api-sp.smartgps.com.br/__external/checklogin";
 
-    // Nomes amigáveis dos servidores/clusters (edite à vontade).
-    const SERVER_NAMES = {
-      SP: "São Paulo",
-      AL: "Alagoas",
-      MA: "Maranhão",
-      SC: "Santa Catarina",
-    };
-
     // ---- Elements --------------------------------------------------------
     const form = document.getElementById("form");
     const input = document.getElementById("login");
@@ -263,7 +255,6 @@
     }
 
     function serverCard(code, info) {
-      const name = SERVER_NAMES[code] ? `${SERVER_NAMES[code]}` : "Servidor";
       const hasAdmin = !!info.has_admin_above;
       const admin = info.admin || null;
 
@@ -294,7 +285,7 @@
         <div class="top">
           <span class="server">
             <span class="code">${esc(code)}</span>
-            <span>Servidor<br><b>${esc(name)}</b></span>
+            <span class="srv-label">Servidor</span>
           </span>
           ${badge}
         </div>
