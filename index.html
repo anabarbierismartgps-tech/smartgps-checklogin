@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SmartGPS · Consulta de Login</title>
+  <title>SmartGPS · Consultas</title>
   <meta name="description" content="Consulta em qual servidor um login está e quem é o admin acima dele (checklogin)." />
   <style>
     :root {
@@ -98,20 +98,21 @@
 
     .hint { text-align: center; color: var(--muted); font-size: 13px; margin: -8px 0 22px; }
 
-    /* seletor de modo (Login / IMEI) */
-    .tabs {
-      display: flex; width: max-content; margin: 0 auto 18px;
-      gap: 4px; padding: 4px;
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    /* seções (Login / IMEI) numa tela só */
+    .group { margin-bottom: 6px; }
+    .group + .group { margin-top: 26px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .group-head { display: flex; align-items: center; gap: 10px; margin-bottom: 3px; }
+    .group-head h2 { font-size: 17px; margin: 0; letter-spacing: -.2px; }
+    .group-sub { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+    .soon {
+      display: inline-flex; align-items: center;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+      background: var(--warn-bg); color: var(--warn);
     }
-    .tab {
-      appearance: none; border: none; cursor: pointer;
-      padding: 8px 22px; border-radius: 9px;
-      font-size: 14px; font-weight: 600; font-family: inherit;
-      color: var(--muted); background: transparent; transition: color .15s, background .15s;
-    }
-    .tab:hover { color: var(--text); }
-    .tab.active { background: var(--brand); color: #fff; }
+    .group.disabled { opacity: .7; }
+    input:disabled, button.submit:disabled { cursor: not-allowed; }
+    input:disabled { background: var(--bg); color: var(--muted); -webkit-text-fill-color: var(--muted); }
 
     /* result */
     #result:empty { display: none; }
@@ -219,68 +220,61 @@
   <div class="wrap">
     <header>
       <div class="logo"><span class="dot"></span> SmartGPS</div>
-      <h1>Consulta</h1>
-      <p id="subtitle">Descubra em qual servidor um login está e quem é o admin acima dele.</p>
+      <h1>Consultas</h1>
+      <p>Consulte um login ou um IMEI nos servidores.</p>
     </header>
 
-    <div class="tabs" role="tablist">
-      <button type="button" class="tab active" data-mode="login" role="tab">Login</button>
-      <button type="button" class="tab" data-mode="imei" role="tab">IMEI</button>
-    </div>
+    <!-- Consulta Login -->
+    <section class="group">
+      <div class="group-head"><h2>Login</h2></div>
+      <p class="group-sub">Em qual servidor o login está e quem é o admin acima dele.</p>
+      <form id="loginForm" autocomplete="off">
+        <div class="field">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+          <input type="text" id="login" name="login" placeholder="Digite o login (ex.: demosp)" autofocus />
+        </div>
+        <button type="submit" class="submit" id="loginBtn">Consultar</button>
+      </form>
+      <div id="loginResult" aria-live="polite"></div>
+    </section>
 
-    <form id="form" autocomplete="off">
-      <div class="field">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
-        <input type="text" id="term" name="term" placeholder="Digite o login (ex.: demosp)" autofocus />
+    <!-- Consulta IMEI (em breve) -->
+    <section class="group disabled">
+      <div class="group-head">
+        <h2>IMEI</h2>
+        <span class="soon">Em breve</span>
       </div>
-      <button type="submit" class="submit" id="btn">Consultar</button>
-    </form>
-    <div class="hint">Pressione <b>Enter</b> para consultar</div>
-
-    <div id="result" aria-live="polite"></div>
+      <p class="group-sub">Consulta de IMEI nos servidores — em desenvolvimento.</p>
+      <form id="imeiForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+          <input type="text" id="imei" placeholder="Disponível em breve" disabled />
+        </div>
+        <button type="button" class="submit" id="imeiBtn" disabled>Consultar</button>
+      </form>
+    </section>
 
     <footer>
-      Endpoint: <code id="ep"></code>
+      Endpoint: <code>__external/checklogin/{login}</code>
     </footer>
   </div>
 
   <script>
     // ---- Config ----------------------------------------------------------
     const API_LOGIN_BASE = "https://api-sp.smartgps.com.br/__external/checklogin";
-    const API_IMEI_BASE  = "https://api-sp.smartgps.com.br/__external/checkimei";
-
-    const MODES = {
-      login: {
-        base: API_LOGIN_BASE, suffix: "/{login}", inputmode: "text",
-        placeholder: "Digite o login (ex.: demosp)",
-        subtitle: "Descubra em qual servidor um login está e quem é o admin acima dele.",
-        run: (t) => queryLogin(t),
-      },
-      imei: {
-        base: API_IMEI_BASE, suffix: "/{imei}", inputmode: "numeric",
-        placeholder: "Digite o IMEI (ex.: 862476054300065)",
-        subtitle: "Descubra em qual servidor um IMEI está cadastrado.",
-        run: (t) => queryImei(t),
-      },
-    };
 
     // ---- Elements --------------------------------------------------------
-    const form = document.getElementById("form");
-    const input = document.getElementById("term");
-    const btn = document.getElementById("btn");
-    const result = document.getElementById("result");
-    const subtitle = document.getElementById("subtitle");
-    const ep = document.getElementById("ep");
-    const tabs = Array.from(document.querySelectorAll(".tab"));
-
-    let mode = "login";
+    const loginForm = document.getElementById("loginForm");
+    const loginInput = document.getElementById("login");
+    const loginBtn = document.getElementById("loginBtn");
+    const loginResult = document.getElementById("loginResult");
 
     // ---- Helpers ---------------------------------------------------------
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => (
       { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
     ));
 
-    function render(html) { result.innerHTML = html; }
+    function render(html) { loginResult.innerHTML = html; }
 
     function loading(term) {
       render(`<div class="state"><div class="spinner"></div>Consultando <b>${esc(term)}</b>…</div>`);
@@ -293,12 +287,19 @@
       </div>`);
     }
 
-    function appendRaw(data) {
-      const pre = `<details class="raw"><summary>Ver resposta bruta (JSON)</summary><pre>${esc(JSON.stringify(data, null, 2))}</pre></details>`;
-      result.insertAdjacentHTML("beforeend", pre);
+    function stateLoginNotFound(login) {
+      render(`<div class="state">
+        <div class="big">Login não encontrado</div>
+        <div>Nenhum usuário <b>${esc(login)}</b> localizado nos servidores.</div>
+      </div>`);
     }
 
-    // ---- Fetch compartilhado ---------------------------------------------
+    function appendRaw(data) {
+      const pre = `<details class="raw"><summary>Ver resposta bruta (JSON)</summary><pre>${esc(JSON.stringify(data, null, 2))}</pre></details>`;
+      loginResult.insertAdjacentHTML("beforeend", pre);
+    }
+
+    // ---- Fetch -----------------------------------------------------------
     let inFlight = null;
 
     async function fetchJson(url) {
@@ -314,18 +315,11 @@
         if (e.name === "AbortError") return { aborted: true };
         return { err: "Não foi possível conectar à API. Verifique a conexão." };
       } finally {
-        if (inFlight === ctrl) { inFlight = null; btn.disabled = false; }
+        if (inFlight === ctrl) { inFlight = null; loginBtn.disabled = false; }
       }
     }
 
     // ---- Consulta: LOGIN -------------------------------------------------
-    function stateLoginNotFound(login) {
-      render(`<div class="state">
-        <div class="big">Login não encontrado</div>
-        <div>Nenhum usuário <b>${esc(login)}</b> localizado nos servidores.</div>
-      </div>`);
-    }
-
     function serverCard(code, info) {
       const hasAdmin = !!info.has_admin_above;
       const admin = info.admin || null;
@@ -366,6 +360,11 @@
     }
 
     async function queryLogin(login) {
+      login = login.trim();
+      if (!login) { loginInput.focus(); return; }
+      loading(login);
+      loginBtn.disabled = true;
+
       const r = await fetchJson(`${API_LOGIN_BASE}/${encodeURIComponent(login)}`);
       if (r.aborted) return;
       if (r.err) { stateError(r.err); return; }
@@ -382,87 +381,10 @@
       appendRaw(data);
     }
 
-    // ---- Consulta: IMEI --------------------------------------------------
-    // Normaliza cada item de existingServers, seja string ("SP") ou objeto.
-    function normServers(list) {
-      return (Array.isArray(list) ? list : []).map((e) => {
-        if (e && typeof e === "object") {
-          const code = e.server || e.code || e.name || e.cluster || e.db || e.sigla || "";
-          return { code: String(code || "?"), obj: e };
-        }
-        return { code: String(e), obj: null };
-      });
-    }
-
-    function stateImeiNotFound(imei) {
-      render(`<div class="state">
-        <div class="big">IMEI não cadastrado</div>
-        <div>O IMEI <b>${esc(imei)}</b> não foi encontrado em nenhum servidor.</div>
-      </div>`);
-    }
-
-    function imeiCard(imei, servers) {
-      const badges = servers.map((s) => `<span class="code">${esc(s.code)}</span>`).join("");
-      const plural = servers.length > 1 ? "servidores" : "servidor";
-      return `<div class="card">
-        <div class="top">
-          <span class="server">
-            <span class="srv-label">IMEI</span>
-            <span class="imei-val">${esc(imei)}</span>
-          </span>
-          <span class="badge ok"><span class="d"></span> Cadastrado</span>
-        </div>
-        <div class="rows">
-          <div class="row">
-            <span class="k">Cadastrado em ${servers.length} ${plural}</span>
-            <span class="v codes">${badges}</span>
-          </div>
-        </div>
-      </div>`;
-    }
-
-    async function queryImei(imei) {
-      const r = await fetchJson(`${API_IMEI_BASE}/${encodeURIComponent(imei)}`);
-      if (r.aborted) return;
-      if (r.err) { stateError(r.err); return; }
-      const data = r.data;
-
-      if (data && data.error) { stateError(String(data.error)); appendRaw(data); return; }
-
-      const servers = normServers(data && data.existingServers);
-      if (servers.length === 0) { stateImeiNotFound(imei); appendRaw(data); return; }
-
-      render(imeiCard(imei, servers));
-      appendRaw(data);
-    }
-
-    // ---- Dispatch / modo -------------------------------------------------
-    function run(term) {
-      term = term.trim();
-      if (!term) { input.focus(); return; }
-      loading(term);
-      btn.disabled = true;
-      MODES[mode].run(term);
-    }
-
-    function setMode(next, opts = {}) {
-      if (!MODES[next]) return;
-      mode = next;
-      const cfg = MODES[next];
-      tabs.forEach((t) => t.classList.toggle("active", t.dataset.mode === next));
-      input.placeholder = cfg.placeholder;
-      input.setAttribute("inputmode", cfg.inputmode);
-      subtitle.textContent = cfg.subtitle;
-      ep.textContent = cfg.base + cfg.suffix;
-      if (!opts.keep) { input.value = ""; render(""); }
-      input.focus();
-    }
-
     // ---- Events ----------------------------------------------------------
-    form.addEventListener("submit", (e) => { e.preventDefault(); run(input.value); });
-    tabs.forEach((t) => t.addEventListener("click", () => setMode(t.dataset.mode)));
+    loginForm.addEventListener("submit", (e) => { e.preventDefault(); queryLogin(loginInput.value); });
 
-    result.addEventListener("click", async (e) => {
+    loginResult.addEventListener("click", async (e) => {
       const b = e.target.closest("[data-copy]");
       if (!b) return;
       try {
@@ -472,13 +394,9 @@
       } catch { /* ignora */ }
     });
 
-    // ---- Init: parâmetros na URL (?login=xxx ou ?imei=xxx) ---------------
-    setMode("login");
-    const params = new URLSearchParams(location.search);
-    const qImei = params.get("imei");
-    const qLogin = params.get("login");
-    if (qImei) { setMode("imei", { keep: true }); input.value = qImei; run(qImei); }
-    else if (qLogin) { setMode("login", { keep: true }); input.value = qLogin; run(qLogin); }
+    // ---- Init: ?login=xxx na URL (link direto) ---------------------------
+    const qLogin = new URLSearchParams(location.search).get("login");
+    if (qLogin) { loginInput.value = qLogin; queryLogin(qLogin); }
   </script>
 </body>
 </html>
