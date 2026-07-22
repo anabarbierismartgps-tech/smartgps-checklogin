@@ -1,8 +1,11 @@
-# SmartGPS · Consulta de Login (checklogin)
+# SmartGPS · Consulta (checklogin / checkimei)
 
-Tela simples para consultar **em qual servidor/cluster** um login está e **quem é o admin (conta acima)** dele, usando o endpoint interno `__external/checklogin`.
+Tela simples com duas consultas:
 
-É um app **estático** (um único `index.html`, sem build e sem backend). O endpoint tem CORS liberado e não exige token, então roda direto no navegador.
+- **Login** — em qual servidor/cluster um login está e **quem é o admin (conta acima)** dele (`__external/checklogin`).
+- **IMEI** — em qual(is) servidor(es) um IMEI está **cadastrado** (`__external/checkimei`).
+
+É um app **estático** (um único `index.html`, sem build e sem backend). Os endpoints têm CORS liberado e não exigem token, então roda direto no navegador.
 
 ## Como usar
 
@@ -13,10 +16,12 @@ python3 -m http.server 8777
 # depois acesse http://localhost:8777
 ```
 
-Digite o login e pressione **Enter** (ou clique em **Consultar**).
-Também dá para consultar por link direto: `index.html?login=demosp`.
+Escolha o modo (**Login** ou **IMEI**), digite o termo e pressione **Enter** (ou clique em **Consultar**).
+Também dá para consultar por link direto: `index.html?login=demosp` ou `index.html?imei=862476054300065`.
 
 ## API
+
+### Login
 
 ```
 GET https://api-sp.smartgps.com.br/__external/checklogin/{login}
@@ -24,7 +29,7 @@ GET https://api-sp.smartgps.com.br/__external/checklogin/{login}
 
 Apesar do nome `api-sp`, esse endpoint funciona como gateway e localiza o login em qualquer servidor.
 
-### Formatos de resposta
+#### Formatos de resposta
 
 **Login encontrado, conta principal (sem admin acima):**
 ```json
@@ -43,12 +48,29 @@ Apesar do nome `api-sp`, esse endpoint funciona como gateway e localiza o login 
 
 A chave de topo é o **código do servidor** (`SP`, `AL`, `MA`, `SC`, …).
 
+### IMEI
+
+```
+GET https://api-sp.smartgps.com.br/__external/checkimei/{imei}
+```
+
+#### Formatos de resposta
+
+**IMEI não cadastrado:**
+```json
+{ "existingServers": [] }
+```
+
+**IMEI cadastrado:** `existingServers` traz a lista de servidores. O renderizador
+é defensivo — aceita tanto uma lista de siglas (`["SP","AL"]`) quanto de objetos
+(`[{ "server": "SP" }, ...]`), extraindo a sigla de `server`/`code`/`name`/`cluster`.
+
 ## Configuração
 
 No topo do `<script>` em `index.html`:
 
-- `API_BASE` — URL base do endpoint.
-- `SERVER_NAMES` — mapeamento de código → nome amigável do servidor (edite à vontade).
+- `API_LOGIN_BASE` / `API_IMEI_BASE` — URLs base dos endpoints.
+- `MODES` — configuração de cada modo (placeholder, subtítulo, etc.).
 
 ## Estrutura
 
